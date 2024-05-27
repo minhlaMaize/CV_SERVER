@@ -13,18 +13,19 @@ async def handleRequest(
 ):
     content = await file.read()
     output = predict(np.fromstring(content, np.uint8))
-    return JSONResponse(content={"knn": {
-        "class": output[0].tolist()[0],
-    }, "svm": {
-        "class": output[1].tolist()[0],
-    }})
+    return JSONResponse(content={"knn": output[0], "svm": output[1]})
 def predict(input):
+    class_list = ["cat", 'dog']
     input= np.array([extract_feature_vector_with_img(input)])
     input = scaler.transform(input)
     input = pca.transform(input)
-    knn_output = knn_model.predict(input)
-    svm_output = svm_model.predict(input)
-    print(knn_output)
+    knn_output = knn_model.predict_proba(input)
+    knn_max_index = np.argmax(knn_output[0])
+    knn_output  = {"class": class_list[knn_max_index], "score" : knn_output[0][knn_max_index]}
+    svm_output = svm_model.predict_proba(input)
+    svm_max_index = np.argmax(svm_output[0])
+    svm_output = {"class": class_list[svm_max_index], "score": svm_output[0][svm_max_index]}
+    print(svm_output)
     return [knn_output, svm_output]
 def extract_feature_vector_with_img(img):
     img = cv2.imdecode(img, cv2.IMREAD_GRAYSCALE) # cv2.IMREAD_COLOR in OpenCV 3.1
